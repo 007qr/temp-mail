@@ -10,9 +10,17 @@ import {
   Copy,
   Envelope,
   EnvelopeOpen,
+  Warning,
 } from "@phosphor-icons/react"
 
-import { DOMAIN, sanitizeAlias, toAddress, type Mail } from "@temp-mail/core"
+import {
+  DOMAIN,
+  InboxError,
+  fetchInbox,
+  sanitizeAlias,
+  toAddress,
+  type Mail,
+} from "@temp-mail/core"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { IconAction } from "@/components/icon-action"
@@ -21,6 +29,9 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+
+const POLL_INTERVAL = 10000
+const FALLBACK_RETRY = 60
 
 function timeLabel(value: number) {
   const date = new Date(value)
@@ -135,21 +146,65 @@ export function Inbox({ alias }: { alias: string }) {
   const [reading, setReading] = React.useState(false)
   const [refreshing, setRefreshing] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
+  const [retryIn, setRetryIn] = React.useState(0)
+
+  // Wall-clock time the server will accept us again; a ref so resuming a hidden tab can honour it.
+  const resumeAt = React.useRef(0)
 
   const load = React.useCallback(async () => {
     try {
-      const response = await fetch(`/api/inbox/${encodeURIComponent(alias)}`)
-      setMails(response.ok ? await response.json() : [])
-    } catch {
-      setMails([])
+      const next = await fetchInbox(alias)
+      resumeAt.current = 0
+      setRetryIn(0)
+      setMails(next)
+      return POLL_INTERVAL
+    } catch (error) {
+      // Keep whatever is on screen: a rate limit or dropped connection is not an empty inbox.
+      setMails((current) => current ?? [])
+
+      if (error instanceof InboxError && error.status === 429) {
+        const seconds = Math.max(error.retryAfter ?? FALLBACK_RETRY, 1)
+        resumeAt.current = Date.now() + seconds * 1000
+        setRetryIn(seconds)
+        return seconds * 1000
+      }
+
+      return POLL_INTERVAL
     }
   }, [alias])
 
   React.useEffect(() => {
-    const timer = setInterval(load, 10000)
-    queueMicrotask(load)
-    return () => clearInterval(timer)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let stopped = false
+
+    async function tick() {
+      const delay = await load()
+      if (stopped || document.visibilityState !== "visible") return
+      timer = setTimeout(tick, delay)
+    }
+
+    // Polling a hidden tab burns request budget against the worker's rate limit for nothing.
+    function sync() {
+      clearTimeout(timer)
+      if (document.visibilityState !== "visible") return
+      // Resuming mid-cooldown must not spend the request that re-trips the limit.
+      timer = setTimeout(tick, Math.max(0, resumeAt.current - Date.now()))
+    }
+
+    sync()
+    document.addEventListener("visibilitychange", sync)
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+      document.removeEventListener("visibilitychange", sync)
+    }
   }, [load])
+
+  React.useEffect(() => {
+    if (retryIn <= 0) return
+    const timer = setTimeout(() => setRetryIn((value) => value - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [retryIn])
 
   React.useEffect(() => {
     if (!copied) return
@@ -160,6 +215,7 @@ export function Inbox({ alias }: { alias: string }) {
   const selected = mails?.find((mail) => mail.id === selectedId) ?? mails?.[0] ?? null
 
   async function refresh() {
+    if (retryIn > 0) return
     setRefreshing(true)
     await load()
     setRefreshing(false)
@@ -226,7 +282,7 @@ export function Inbox({ alias }: { alias: string }) {
             label="Refresh inbox"
             className="ml-auto md:hidden"
             onClick={refresh}
-            disabled={refreshing}
+            disabled={refreshing || retryIn > 0}
           >
             <ArrowsClockwise className={cn(refreshing && "animate-spin")} />
           </IconAction>
@@ -236,7 +292,7 @@ export function Inbox({ alias }: { alias: string }) {
             size="sm"
             className="ml-auto hidden md:inline-flex"
             onClick={refresh}
-            disabled={refreshing}
+            disabled={refreshing || retryIn > 0}
           >
             <ArrowsClockwise className={cn(refreshing && "animate-spin")} />
             Refresh
@@ -257,6 +313,16 @@ export function Inbox({ alias }: { alias: string }) {
             <span>Inbox</span>
             <span>{mails?.length ?? 0}</span>
           </div>
+
+          {retryIn > 0 && (
+            <div
+              role="status"
+              className="mx-2 mb-2 flex shrink-0 items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
+            >
+              <Warning className="size-3.5 shrink-0" />
+              <span>Too many requests — retrying in {retryIn}s</span>
+            </div>
+          )}
 
           <ScrollArea className="min-h-0 flex-1">
             <div className="flex flex-col gap-0.5 px-2 pb-3">
