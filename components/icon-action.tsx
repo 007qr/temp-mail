@@ -9,7 +9,7 @@ export function IconAction({
   ...props
 }: React.ComponentProps<typeof Button> & { label: string }) {
   return (
-    <Tooltip defaultOpen>
+    <Tooltip>
       <TooltipTrigger
         render={
           <Button variant="ghost" size="icon-sm" aria-label={label} {...props}>
