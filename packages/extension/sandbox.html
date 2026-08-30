@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html { color-scheme: light; overflow: hidden }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #fff;
+        color: #1c1917;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        line-height: 1.65;
+        overflow-wrap: anywhere;
+        overflow-x: hidden;
+      }
+      * { max-width: 100% }
+      img { height: auto }
+      a { color: #1d4ed8 }
+      table { table-layout: fixed; width: 100% }
+    </style>
+  </head>
+  <body>
+    <script>
+      function report() {
+        parent.postMessage({ type: "height", height: document.documentElement.scrollHeight }, "*")
+      }
+
+      addEventListener("message", function (event) {
+        if (!event.data || event.data.type !== "render") return
+
+        var holder = document.createElement("div")
+        holder.innerHTML = event.data.html
+
+        var links = holder.querySelectorAll("a")
+        for (var i = 0; i < links.length; i++) {
+          links[i].target = "_blank"
+          links[i].rel = "noreferrer"
+        }
+
+        document.body.replaceChildren(holder)
+        report()
+      })
+
+      new ResizeObserver(report).observe(document.body)
+    </script>
+  </body>
+</html>

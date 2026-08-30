@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, ArrowsClockwise, Check, Copy, Envelope } from "@phosphor-icons/react"
+import { ArrowRight, Check, Copy, Shuffle } from "@phosphor-icons/react"
 
-import { DOMAIN, generateAlias, sanitizeAlias, toAddress } from "@/lib/address"
+import { DOMAIN, generateAlias, sanitizeAlias, toAddress } from "@temp-mail/core"
+import { IconAction } from "@/components/icon-action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -55,23 +56,16 @@ export function AddressPicker({ initialAlias }: { initialAlias: string }) {
             <span className="shrink-0 text-muted-foreground">@{DOMAIN}</span>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setAlias(generateAlias())}
-            aria-label="Roll a new name"
-          >
-            <ArrowsClockwise />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          <IconAction label="New address" onClick={() => setAlias(generateAlias())}>
+            <Shuffle />
+          </IconAction>
+          <IconAction
+            label={copied ? "Copied" : "Copy address"}
             onClick={copy}
             disabled={!alias}
-            aria-label="Copy address"
           >
             {copied ? <Check className="text-primary" weight="bold" /> : <Copy />}
-          </Button>
+          </IconAction>
         </div>
       </div>
 

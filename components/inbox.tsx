@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   ArrowsClockwise,
@@ -11,11 +12,12 @@ import {
   EnvelopeOpen,
 } from "@phosphor-icons/react"
 
-import type { Mail } from "@/lib/mail"
-import { DOMAIN, toAddress } from "@/lib/address"
+import { DOMAIN, sanitizeAlias, toAddress, type Mail } from "@temp-mail/core"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { IconAction } from "@/components/icon-action"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -59,27 +61,28 @@ function Body({ mail }: { mail: Mail }) {
 
   if (!mail.html || !DESIGNED.test(mail.html)) {
     return (
-      <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+      <div className="overflow-hidden text-[15px] leading-relaxed break-words whitespace-pre-wrap">
         {mail.text || "This message has no readable content."}
       </div>
     )
   }
 
   const page = `<!doctype html><meta charset="utf-8"><base target="_blank"><style>
-    html{color-scheme:light}
-    body{margin:0;padding:24px;background:#fff;color:#1c1917;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
-    img{max-width:100%;height:auto}
+    html{color-scheme:light;overflow:hidden}
+    body{margin:0;padding:24px;background:#fff;color:#1c1917;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.65;overflow-wrap:anywhere;overflow-x:hidden}
+    *{max-width:100%}
+    img{height:auto}
     a{color:#1d4ed8}
-    table{max-width:100%}
+    table{table-layout:fixed;width:100%}
   </style>${mail.html}<script>
     const send = () => parent.postMessage({ channel: ${JSON.stringify(channel)}, height: document.documentElement.scrollHeight }, "*")
-    new ResizeObserver(send).observe(document.documentElement)
+    new ResizeObserver(send).observe(document.body)
     addEventListener("load", send)
     send()
   <\/script>`
 
   return (
-    <div className="overflow-hidden rounded-xl bg-white ring-1 ring-foreground/10">
+    <div className="w-full max-w-full overflow-hidden bg-white">
       <iframe
         sandbox="allow-scripts"
         title={mail.subject}
@@ -92,7 +95,9 @@ function Body({ mail }: { mail: Mail }) {
 }
 
 export function Inbox({ alias }: { alias: string }) {
+  const router = useRouter()
   const address = toAddress(alias)
+  const [draft, setDraft] = React.useState(alias)
   const [mails, setMails] = React.useState<Mail[] | null>(null)
   const [selectedId, setSelectedId] = React.useState<number | null>(null)
   const [refreshing, setRefreshing] = React.useState(false)
@@ -127,35 +132,46 @@ export function Inbox({ alias }: { alias: string }) {
     setRefreshing(false)
   }
 
+  function commitAlias() {
+    if (draft && draft !== alias) router.push(`/inbox/${draft}`)
+  }
+
   async function copy() {
     await navigator.clipboard.writeText(address)
     setCopied(true)
   }
 
   return (
-    <div className="flex h-svh flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-3 px-4">
-        <Button
-          variant="ghost"
-          size="icon-sm"
+    <div className="flex min-h-svh flex-col overflow-x-hidden">
+      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 bg-background px-4">
+        <IconAction
+          label="Back to generator"
           nativeButton={false}
           render={<Link href="/" />}
-          aria-label="Back"
         >
           <ArrowLeft />
-        </Button>
+        </IconAction>
 
-        <div className="min-w-0">
-          <div className="truncate font-mono text-sm">
-            <span>{alias}</span>
-            <span className="text-primary">+temp</span>
-            <span className="text-muted-foreground">@{DOMAIN}</span>
-          </div>
+        <div className="flex min-w-0 items-center overflow-hidden font-mono text-sm">
+          <Input
+            value={draft}
+            onChange={(event) => setDraft(sanitizeAlias(event.target.value))}
+            onBlur={commitAlias}
+            onKeyDown={(event) => event.key === "Enter" && commitAlias()}
+            style={{ width: `calc(${Math.max(draft.length, 1)}ch + 2px)` }}
+            spellCheck={false}
+            autoComplete="off"
+            aria-label="Mailbox name"
+            title="Edit mailbox name"
+            className="h-7 max-w-full rounded-md border-0 px-0 font-mono text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
+          />
+          <span className="shrink-0 text-primary">+temp</span>
+          <span className="shrink-0 truncate text-muted-foreground">@{DOMAIN}</span>
         </div>
 
-        <Button variant="ghost" size="icon-sm" onClick={copy} aria-label="Copy address">
+        <IconAction label={copied ? "Copied" : "Copy address"} onClick={copy}>
           {copied ? <Check className="text-primary" weight="bold" /> : <Copy />}
-        </Button>
+        </IconAction>
 
         <Button
           variant="outline"
@@ -171,8 +187,8 @@ export function Inbox({ alias }: { alias: string }) {
 
       <Separator />
 
-      <div className="flex min-h-0 flex-1">
-        <aside className="flex w-[340px] shrink-0 flex-col border-r border-border">
+      <div className="flex flex-1">
+        <aside className="sticky top-14 flex h-[calc(100svh-3.5rem)] w-[340px] shrink-0 flex-col border-r border-border">
           <div className="flex h-11 shrink-0 items-center justify-between px-4 text-xs font-medium text-muted-foreground">
             <span>Inbox</span>
             <span>{mails?.length ?? 0}</span>
@@ -253,11 +269,9 @@ export function Inbox({ alias }: { alias: string }) {
 
               <Separator />
 
-              <ScrollArea className="min-h-0 flex-1">
-                <div className="max-w-3xl px-6 py-5">
-                  <Body key={selected.id} mail={selected} />
-                </div>
-              </ScrollArea>
+              <div className="w-full max-w-full flex-1">
+                <Body key={selected.id} mail={selected} />
+              </div>
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">

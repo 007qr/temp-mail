@@ -1,5 +1,5 @@
 import { AddressPicker } from "@/components/address-picker"
-import { generateAlias } from "@/lib/address"
+import { generateAlias } from "@temp-mail/core"
 
 export const dynamic = "force-dynamic"
 
