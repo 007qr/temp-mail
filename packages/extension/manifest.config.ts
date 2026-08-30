@@ -12,18 +12,7 @@ export default defineManifest({
     default_icon: { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   },
   background: { service_worker: "src/background.ts", type: "module" },
-  permissions: ["storage", "alarms", "contextMenus", "clipboardWrite"],
+  permissions: ["storage", "alarms", "contextMenus", "activeTab", "scripting"],
   host_permissions: ["https://temp-mail.ayp.workers.dev/*"],
-  content_scripts: [
-    {
-      matches: ["http://*/*", "https://*/*"],
-      js: ["src/content.ts"],
-      run_at: "document_idle",
-      all_frames: true,
-    },
-  ],
   sandbox: { pages: ["sandbox.html"] },
-  web_accessible_resources: [
-    { resources: ["sandbox.html", "tab.html"], matches: ["<all_urls>"] },
-  ],
 })

@@ -5,6 +5,27 @@ import { fetchInbox, readMailbox } from "@/lib/mailbox"
 const ALARM = "poll"
 const MENU = "fill-temp-address"
 
+function fillFocusedField(address: string) {
+  const element = document.activeElement
+
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    const prototype =
+      element instanceof HTMLInputElement
+        ? HTMLInputElement.prototype
+        : HTMLTextAreaElement.prototype
+
+    Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(element, address)
+    element.dispatchEvent(new Event("input", { bubbles: true }))
+    element.dispatchEvent(new Event("change", { bubbles: true }))
+    return
+  }
+
+  if (element instanceof HTMLElement && element.isContentEditable) {
+    element.textContent = address
+    element.dispatchEvent(new Event("input", { bubbles: true }))
+  }
+}
+
 async function refreshBadge() {
   try {
     const { alias, seen } = await readMailbox()
@@ -38,11 +59,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU || !tab?.id) return
 
   const { alias } = await readMailbox()
-  chrome.tabs.sendMessage(
-    tab.id,
-    { type: "fill", address: toAddress(alias) },
-    { frameId: info.frameId }
-  )
+
+  await chrome.scripting.executeScript({
+    target: {
+      tabId: tab.id,
+      ...(info.frameId === undefined ? {} : { frameIds: [info.frameId] }),
+    },
+    func: fillFocusedField,
+    args: [toAddress(alias)],
+  })
 })
 
 chrome.runtime.onMessage.addListener((message) => {

@@ -12,6 +12,8 @@ export function toAddress(alias: string) {
 export function sanitizeAlias(input: string) {
   return input
     .toLowerCase()
+    .split("@")[0]
+    .split("+")[0]
     .replace(/[^a-z0-9._-]/g, "")
     .slice(0, 32)
 }
