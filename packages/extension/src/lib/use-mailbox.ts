@@ -1,7 +1,7 @@
 import * as React from "react"
 import { toAddress, type Mail } from "@temp-mail/core"
 
-import { fetchInbox, markSeen, readMailbox, setAlias as persistAlias } from "@/lib/mailbox"
+import { fetchInbox, readMailbox, setAlias as persistAlias } from "@/lib/mailbox"
 
 export function useMailbox() {
   const [alias, setAliasState] = React.useState<string | null>(null)
@@ -14,8 +14,6 @@ export function useMailbox() {
       const next = await fetchInbox(target)
       setMails(next)
       setError(null)
-      await markSeen(next.map((mail) => mail.id))
-      chrome.runtime.sendMessage({ type: "refresh" })
     } catch (cause) {
       setMails([])
       setError(cause instanceof Error ? cause.message : "Something went wrong")

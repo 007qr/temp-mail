@@ -12,7 +12,7 @@ export default defineManifest({
     default_icon: { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   },
   background: { service_worker: "src/background.ts", type: "module" },
-  permissions: ["storage", "alarms", "contextMenus", "activeTab", "scripting"],
+  permissions: ["storage", "contextMenus", "activeTab", "scripting"],
   host_permissions: ["https://temp-mail.ayp.workers.dev/*"],
   sandbox: { pages: ["sandbox.html"] },
 })
