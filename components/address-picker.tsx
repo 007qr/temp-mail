@@ -52,7 +52,6 @@ export function AddressPicker({ initialAlias }: { initialAlias: string }) {
               aria-label="Mailbox name"
               className="h-7 rounded-md border-0 px-0 font-mono text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
             />
-            <span className="shrink-0 text-primary">+temp</span>
             <span className="shrink-0 text-muted-foreground">@{DOMAIN}</span>
           </div>
 

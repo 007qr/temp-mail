@@ -215,7 +215,6 @@ export function Inbox({ alias }: { alias: string }) {
               title="Edit mailbox name"
               className="h-7 max-w-full rounded-md border-0 px-0 font-mono text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
             />
-            <span className="shrink-0 text-primary">+temp</span>
             <span className="shrink-0 truncate text-muted-foreground">@{DOMAIN}</span>
           </div>
 

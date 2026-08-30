@@ -5,13 +5,13 @@ Language: English (United States)
 
 ## Short description (132 char max)
 
-Disposable email addresses on 007qr.dev. Drop one into any signup form from the right-click menu, then read what lands.
+Disposable email addresses on dropmails.org. Drop one into any signup form from the right-click menu, then read what lands.
 
 ## Detailed description
 
 Temp Mail gives you a throwaway email address and shows you the messages it receives.
 
-Open the toolbar popup and you get an address ending in +temp@007qr.dev. Keep the one
+Open the toolbar popup and you get an address ending in @dropmails.org. Keep the one
 it generates, or type your own prefix. The address is remembered between sessions, so
 the same inbox is waiting the next time you open the popup.
 
@@ -25,7 +25,7 @@ No account. No password. No tracking.
 
 ## Single purpose
 
-Temp Mail provides disposable email addresses on the 007qr.dev domain and displays the
+Temp Mail provides disposable email addresses on the dropmails.org domain and displays the
 messages those addresses receive, so that users can sign up for services without
 exposing a personal inbox.
 

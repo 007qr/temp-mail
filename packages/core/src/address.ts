@@ -1,4 +1,4 @@
-export const DOMAIN = "007qr.dev"
+export const DOMAIN = "dropmails.org"
 
 export function generateAlias() {
   const bytes = crypto.getRandomValues(new Uint8Array(5))
@@ -6,7 +6,7 @@ export function generateAlias() {
 }
 
 export function toAddress(alias: string) {
-  return `${alias}+temp@${DOMAIN}`
+  return `${alias}@${DOMAIN}`
 }
 
 export function sanitizeAlias(input: string) {

@@ -11,7 +11,7 @@ export type RawMail = {
 }
 
 export function inboxUrl(alias: string) {
-  return `${INBOX_ENDPOINT}/${encodeURIComponent(`${alias}+temp`)}`
+  return `${INBOX_ENDPOINT}/${encodeURIComponent(alias)}`
 }
 
 export function toInbox(raw: RawMail[]): Mail[] {
