@@ -43,21 +43,23 @@ function fullTimeLabel(value: number) {
 }
 
 const DESIGNED = /<(table|img|style|font)\b|style="[^"]*(background|font-family)/i
+const REMOTE = /(?:src|srcset|background)\s*=\s*["']?\s*(?:https?:)?\/\/|url\(\s*["']?\s*(?:https?:)?\/\//i
 
 function Body({ mail }: { mail: Mail }) {
-  const channel = React.useId()
+  const frame = React.useRef<HTMLIFrameElement>(null)
+  const [nonce] = React.useState(() => crypto.randomUUID())
   const [height, setHeight] = React.useState(0)
+  const [showRemote, setShowRemote] = React.useState(false)
 
   React.useEffect(() => {
     function onMessage(event: MessageEvent) {
-      if (event.data?.channel === channel && typeof event.data.height === "number") {
-        setHeight(Math.ceil(event.data.height))
-      }
+      if (event.source !== frame.current?.contentWindow) return
+      if (typeof event.data?.height === "number") setHeight(Math.ceil(event.data.height))
     }
 
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
-  }, [channel])
+  }, [])
 
   if (!mail.html || !DESIGNED.test(mail.html)) {
     return (
@@ -67,7 +69,22 @@ function Body({ mail }: { mail: Mail }) {
     )
   }
 
-  const page = `<!doctype html><meta charset="utf-8"><base target="_blank"><style>
+  const blocked = REMOTE.test(mail.html) && !showRemote
+
+  // The nonce is what lets the height probe below run while the sender's own
+  // scripts stay blocked; remote images wait for the reader so opening a
+  // message doesn't hand the sender a tracking pixel hit.
+  const policy = [
+    "default-src 'none'",
+    "style-src 'unsafe-inline'",
+    `script-src 'nonce-${nonce}'`,
+    `img-src data:${blocked ? "" : " https:"}`,
+    "form-action 'none'",
+  ].join("; ")
+
+  const page = `<!doctype html><meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="${policy}">
+  <base target="_blank"><style>
     html{color-scheme:light;overflow:hidden}
     body{margin:0;padding:24px;background:#fff;color:#1c1917;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.65;overflow-wrap:anywhere;overflow-x:hidden}
     *{max-width:100%}
@@ -75,22 +92,36 @@ function Body({ mail }: { mail: Mail }) {
     a{color:#1d4ed8}
     table{table-layout:fixed;width:100%}
     @media (max-width:640px){body{padding:16px}}
-  </style>${mail.html}<script>
-    const send = () => parent.postMessage({ channel: ${JSON.stringify(channel)}, height: document.documentElement.scrollHeight }, "*")
+  </style>${mail.html}<script nonce="${nonce}">
+    const send = () => parent.postMessage({ height: document.documentElement.scrollHeight }, "*")
     new ResizeObserver(send).observe(document.body)
     addEventListener("load", send)
     send()
   <\/script>`
 
   return (
-    <div className="w-full max-w-full overflow-hidden bg-white">
-      <iframe
-        sandbox="allow-scripts"
-        title={mail.subject}
-        srcDoc={page}
-        style={{ height: height || 200 }}
-        className="block w-full"
-      />
+    <div className="w-full max-w-full overflow-hidden">
+      {blocked && (
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/40 px-4 py-2 md:px-6">
+          <span className="text-xs text-muted-foreground">
+            Images blocked so the sender can&rsquo;t track you.
+          </span>
+          <Button variant="outline" size="xs" onClick={() => setShowRemote(true)}>
+            Show images
+          </Button>
+        </div>
+      )}
+
+      <div className="bg-white">
+        <iframe
+          ref={frame}
+          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+          title={mail.subject}
+          srcDoc={page}
+          style={{ height: height || 200 }}
+          className="block w-full"
+        />
+      </div>
     </div>
   )
 }
