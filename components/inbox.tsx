@@ -74,6 +74,7 @@ function Body({ mail }: { mail: Mail }) {
     img{height:auto}
     a{color:#1d4ed8}
     table{table-layout:fixed;width:100%}
+    @media (max-width:640px){body{padding:16px}}
   </style>${mail.html}<script>
     const send = () => parent.postMessage({ channel: ${JSON.stringify(channel)}, height: document.documentElement.scrollHeight }, "*")
     new ResizeObserver(send).observe(document.body)
@@ -100,6 +101,7 @@ export function Inbox({ alias }: { alias: string }) {
   const [draft, setDraft] = React.useState(alias)
   const [mails, setMails] = React.useState<Mail[] | null>(null)
   const [selectedId, setSelectedId] = React.useState<number | null>(null)
+  const [reading, setReading] = React.useState(false)
   const [refreshing, setRefreshing] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
 
@@ -143,52 +145,84 @@ export function Inbox({ alias }: { alias: string }) {
 
   return (
     <div className="flex min-h-svh flex-col overflow-x-hidden">
-      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 bg-background px-4">
-        <IconAction
-          label="Back to generator"
-          nativeButton={false}
-          render={<Link href="/" />}
-        >
-          <ArrowLeft />
-        </IconAction>
+      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center bg-background px-4">
+        {reading && (
+          <div className="flex min-w-0 flex-1 items-center gap-3 md:hidden">
+            <IconAction label="Back to inbox" onClick={() => setReading(false)}>
+              <ArrowLeft />
+            </IconAction>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+              {selected?.subject}
+            </span>
+          </div>
+        )}
 
-        <div className="flex min-w-0 items-center overflow-hidden font-mono text-sm">
-          <Input
-            value={draft}
-            onChange={(event) => setDraft(sanitizeAlias(event.target.value))}
-            onBlur={commitAlias}
-            onKeyDown={(event) => event.key === "Enter" && commitAlias()}
-            style={{ width: `calc(${Math.max(draft.length, 1)}ch + 2px)` }}
-            spellCheck={false}
-            autoComplete="off"
-            aria-label="Mailbox name"
-            title="Edit mailbox name"
-            className="h-7 max-w-full rounded-md border-0 px-0 font-mono text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
-          />
-          <span className="shrink-0 text-primary">+temp</span>
-          <span className="shrink-0 truncate text-muted-foreground">@{DOMAIN}</span>
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-3",
+            reading && "hidden md:flex"
+          )}
+        >
+          <IconAction
+            label="Back to generator"
+            nativeButton={false}
+            render={<Link href="/" />}
+          >
+            <ArrowLeft />
+          </IconAction>
+
+          <div className="flex min-w-0 items-center overflow-hidden font-mono text-sm">
+            <Input
+              value={draft}
+              onChange={(event) => setDraft(sanitizeAlias(event.target.value))}
+              onBlur={commitAlias}
+              onKeyDown={(event) => event.key === "Enter" && commitAlias()}
+              style={{ width: `calc(${Math.max(draft.length, 1)}ch + 2px)` }}
+              spellCheck={false}
+              autoComplete="off"
+              aria-label="Mailbox name"
+              title="Edit mailbox name"
+              className="h-7 max-w-full rounded-md border-0 px-0 font-mono text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
+            />
+            <span className="shrink-0 text-primary">+temp</span>
+            <span className="shrink-0 truncate text-muted-foreground">@{DOMAIN}</span>
+          </div>
+
+          <IconAction label={copied ? "Copied" : "Copy address"} onClick={copy}>
+            {copied ? <Check className="text-primary" weight="bold" /> : <Copy />}
+          </IconAction>
+
+          <IconAction
+            label="Refresh inbox"
+            className="ml-auto md:hidden"
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            <ArrowsClockwise className={cn(refreshing && "animate-spin")} />
+          </IconAction>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto hidden md:inline-flex"
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            <ArrowsClockwise className={cn(refreshing && "animate-spin")} />
+            Refresh
+          </Button>
         </div>
-
-        <IconAction label={copied ? "Copied" : "Copy address"} onClick={copy}>
-          {copied ? <Check className="text-primary" weight="bold" /> : <Copy />}
-        </IconAction>
-
-        <Button
-          variant="outline"
-          size="sm"
-          className="ml-auto"
-          onClick={refresh}
-          disabled={refreshing}
-        >
-          <ArrowsClockwise className={cn(refreshing && "animate-spin")} />
-          Refresh
-        </Button>
       </header>
 
       <Separator />
 
       <div className="flex flex-1">
-        <aside className="sticky top-14 flex h-[calc(100svh-3.5rem)] w-[340px] shrink-0 flex-col border-r border-border">
+        <aside
+          className={cn(
+            "sticky top-14 h-[calc(100svh-3.5rem)] w-full shrink-0 flex-col border-border md:flex md:w-[340px] md:border-r",
+            reading ? "hidden" : "flex"
+          )}
+        >
           <div className="flex h-11 shrink-0 items-center justify-between px-4 text-xs font-medium text-muted-foreground">
             <span>Inbox</span>
             <span>{mails?.length ?? 0}</span>
@@ -218,7 +252,10 @@ export function Inbox({ alias }: { alias: string }) {
               {mails?.map((mail) => (
                 <button
                   key={mail.id}
-                  onClick={() => setSelectedId(mail.id)}
+                  onClick={() => {
+                    setSelectedId(mail.id)
+                    setReading(true)
+                  }}
                   className={cn(
                     "flex flex-col gap-1 rounded-lg px-3 py-2.5 text-left transition-colors",
                     mail.id === selected?.id
@@ -244,10 +281,15 @@ export function Inbox({ alias }: { alias: string }) {
           </ScrollArea>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col">
+        <section
+          className={cn(
+            "min-w-0 flex-1 flex-col md:flex",
+            reading ? "flex" : "hidden"
+          )}
+        >
           {selected ? (
             <>
-              <div className="flex shrink-0 items-start gap-3 px-6 py-5">
+              <div className="flex shrink-0 items-start gap-3 px-4 py-4 md:px-6 md:py-5">
                 <Avatar className="size-9">
                   <AvatarFallback className="text-xs font-medium uppercase">
                     {selected.name.slice(0, 2)}
