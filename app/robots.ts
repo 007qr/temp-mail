@@ -1,5 +1,7 @@
 import { MetadataRoute } from "next";
 
+import { SITE_URL } from "@/lib/site";
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -9,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/inbox/",
       },
     ],
-    sitemap: "https://www.dropmails.org/sitemap.xml",
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }
