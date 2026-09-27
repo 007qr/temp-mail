@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     "temporary email",
     "disposable email",
     "temp mail",
+    "dropmails",
     "throwaway email",
     "fake email generator",
     "anonymous email",
