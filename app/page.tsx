@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { AddressPicker } from "@/components/address-picker"
+import { ExtensionLink } from "@/components/extension-link"
 import { DOMAIN, generateAlias } from "@temp-mail/core"
 import { SITE_NAME, SITE_URL } from "@/lib/site"
 
@@ -57,11 +58,12 @@ const structuredData = {
 
 export default function Page() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center px-6">
+    <main className="relative flex min-h-svh flex-col items-center justify-center px-6">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
+      <ExtensionLink className="absolute top-4 right-4" />
       <AddressPicker initialAlias={generateAlias()} />
     </main>
   )

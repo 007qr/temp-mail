@@ -23,6 +23,7 @@ import {
 } from "@temp-mail/core"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ExtensionLink } from "@/components/extension-link"
 import { IconAction } from "@/components/icon-action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -278,9 +279,11 @@ export function Inbox({ alias }: { alias: string }) {
             {copied ? <Check className="text-primary" weight="bold" /> : <Copy />}
           </IconAction>
 
+          <ExtensionLink className="ml-auto" />
+
           <IconAction
             label="Refresh inbox"
-            className="ml-auto md:hidden"
+            className="md:hidden"
             onClick={refresh}
             disabled={refreshing || retryIn > 0}
           >
@@ -290,7 +293,7 @@ export function Inbox({ alias }: { alias: string }) {
           <Button
             variant="outline"
             size="sm"
-            className="ml-auto hidden md:inline-flex"
+            className="hidden md:inline-flex"
             onClick={refresh}
             disabled={refreshing || retryIn > 0}
           >

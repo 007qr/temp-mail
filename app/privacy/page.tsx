@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { DOMAIN } from "@temp-mail/core"
+import { ExtensionLink } from "@/components/extension-link"
 import { SITE_NAME, SITE_URL } from "@/lib/site"
 
 const UPDATED = "September 27, 2026"
@@ -30,12 +31,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function Page() {
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-16 text-[15px] leading-relaxed">
-      <Link
-        href="/"
-        className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-      >
-        &larr; {DOMAIN}
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/"
+          className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+        >
+          &larr; {DOMAIN}
+        </Link>
+        <ExtensionLink className="-mr-2.5" />
+      </div>
 
       <h1 className="font-heading mt-8 text-3xl font-semibold tracking-tight">Privacy Policy</h1>
       <p className="text-muted-foreground mt-2 text-sm">Last updated: {UPDATED}</p>
